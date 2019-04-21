@@ -1,0 +1,13 @@
+.git
+.gitignore
+.dockerignore
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.md
+*.txt
+*.prof
