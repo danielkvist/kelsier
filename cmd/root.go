@@ -3,33 +3,71 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 
 	"github.com/danielkvist/fitchner"
 )
 
-// Run parses the URL argument an executes the
-// makeRequest function asynchronously.
+// Run receives an URL via the command line and extracts all
+// the links he finds in it to then check them asynchronously.
 func Run() {
 	url := flag.String("url", "https://www.google.com", "URL")
 	flag.Parse()
 
-	var wg sync.WaitGroup
 	client := &http.Client{}
 
-	wg.Add(1)
-	go makeRequest(*url, client, &wg)
+	parsedURL := parseURL("", *url)
+	links, err := fetchLinks(parsedURL, client)
+	if err != nil {
+		log.Fatalf("while fetching links on %q: %v\n", parsedURL, err)
+	}
+
+	var wg sync.WaitGroup
+	for link := range links {
+		wg.Add(1)
+		go func(link string) {
+			defer wg.Done()
+			makeRequest(link, client)
+		}(link)
+	}
 	wg.Wait()
 }
 
-func makeRequest(url string, c *http.Client, wg *sync.WaitGroup) {
-	defer wg.Done()
+func fetchLinks(url string, c *http.Client) (map[string]bool, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("while creating a new request for %q: %v", url, err)
+	}
 
+	b, err := fitchner.Fetch(c, req)
+	if err != nil {
+		return nil, fmt.Errorf("while fetching from %q: %v", url, err)
+	}
+
+	nodes, err := fitchner.Filter(b, "", "href", "")
+	if err != nil {
+		return nil, fmt.Errorf("while filtering body of %q: %v", url, err)
+	}
+
+	links := map[string]bool{}
+
+	for _, node := range nodes {
+		for _, attr := range node.Attr {
+			if attr.Key == "href" {
+				parsedURL := parseURL(url, attr.Val)
+				links[parsedURL] = true
+				break
+			}
+		}
+	}
+
+	return links, nil
+}
+
+func makeRequest(url string, c *http.Client) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Printf("while creating a new request for %q: %v\n", url, err)
@@ -37,37 +75,7 @@ func makeRequest(url string, c *http.Client, wg *sync.WaitGroup) {
 	}
 
 	status := checkStatus(c, req)
-	printResult(os.Stdout, status, url)
-
-	if status != http.StatusOK {
-		return
-	}
-
-	b, err := fitchner.Fetch(c, req)
-	if err != nil {
-		log.Printf("while fetching from %q: %v\n", url, err)
-		return
-	}
-
-	nodes, err := fitchner.Filter(b, "", "href", "")
-	if err != nil {
-		log.Printf("while filtering body of %q: %v", url, err)
-		return
-	}
-
-	for _, node := range nodes {
-		for _, attr := range node.Attr {
-			if attr.Key == "href" {
-				wg.Add(1)
-				parsedURL := parseURL(url, attr.Val)
-				go func() {
-					defer wg.Done()
-					makeRequest(parsedURL, c, wg)
-				}()
-				break
-			}
-		}
-	}
+	printResult(status, url)
 }
 
 func checkStatus(c *http.Client, req *http.Request) int {
@@ -81,21 +89,22 @@ func checkStatus(c *http.Client, req *http.Request) int {
 }
 
 func parseURL(baseURL, url string) string {
-	if strings.HasPrefix(url, "/") {
+	switch {
+	case len(url) <= 1:
+		return baseURL
+	case strings.HasPrefix(url, "/"):
+		return strings.TrimSuffix(baseURL, "/") + url
+	case strings.HasPrefix(url, "#"):
 		return baseURL + url
-	}
-
-	if strings.HasPrefix(url, "#") {
-		return baseURL + url
-	}
-
-	if strings.HasPrefix(url, "mailto:") {
+	case strings.HasPrefix(url, "www"):
+		return "https://" + url + "/"
+	case strings.HasPrefix(url, "mailto:"):
 		return strings.TrimPrefix(url, "mailto:")
+	default:
+		return url
 	}
-
-	return url
 }
 
-func printResult(w io.Writer, status int, url string) {
-	fmt.Fprintf(w, "%v - %s\n", status, url)
+func printResult(status int, url string) {
+	fmt.Printf("%v - %s\n", status, url)
 }
