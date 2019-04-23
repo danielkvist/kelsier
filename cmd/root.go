@@ -37,7 +37,7 @@ func Run() {
 }
 
 func fetchLinks(url string, c *http.Client) (map[string]bool, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("while creating a new request for %q: %v", url, err)
 	}
@@ -68,7 +68,7 @@ func fetchLinks(url string, c *http.Client) (map[string]bool, error) {
 }
 
 func makeRequest(url string, c *http.Client) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		log.Printf("while creating a new request for %q: %v\n", url, err)
 		return
