@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -51,7 +50,6 @@ func TestFetchLinks(t *testing.T) {
 		{"Page", server.URL + "/blog"},
 	}
 
-	fmt.Println(links)
 	for _, tc := range tt {
 		t.Run(tc.link, func(t *testing.T) {
 			if ok := links[tc.link]; !ok {
