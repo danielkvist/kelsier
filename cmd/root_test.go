@@ -7,22 +7,24 @@ import (
 	"testing"
 )
 
-const tpl = `<!DOCTYPE HTML>
-	<html>
+const tpl = `
+<!DOCTYPE HTML>
+<html>
 	<head>
-	<title>Testing Kelsier</title>
+		<title>Testing Kelsier</title>
 	</head>
 	<body>
-	<header>
-	<h1 class="title">Testing</h1>
-	</header>
-	<a href="https://www.google.com">Google</a>
-	<a href="www.bing.com">Bing</a>
-	<a href="https://www.github.com">GitHub</a>
-	<a href="#title">Title</a>
-	<a href="/blog">Blog</a>
+		<header>
+			<h1 class="title">Testing</h1>
+		</header>
+		<a href="https://www.google.com">Google</a>
+		<a href="www.bing.com">Bing</a>
+		<a href="https://github.com">GitHub</a>
+		<a href="#title">Title</a>
+		<a href="/blog">Blog</a>
 	</body>
-	</html>`
+</html>
+`
 
 func TestFetchLinks(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -33,29 +35,23 @@ func TestFetchLinks(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	client := &http.Client{}
-	links, err := fetchLinks(server.URL, client)
+	links, err := fetchLinks(server.URL)
 	if err != nil {
 		t.Fatalf("while fetching links: %v", err)
 	}
 
-	tt := []struct {
-		name string
-		link string
-	}{
-		{"Google", "https://www.google.com"},
-		{"Bing", "https://www.bing.com/"},
-		{"GitHub", "https://www.github.com"},
-		{"ID", server.URL + "#title"},
-		{"Page", server.URL + "/blog"},
+	expectedLinks := []string{
+		"https://www.google.com",
+		"https://www.bing.com/",
+		"https://github.com",
+		server.URL + "#title",
+		server.URL + "/blog",
 	}
 
-	for _, tc := range tt {
-		t.Run(tc.link, func(t *testing.T) {
-			if ok := links[tc.link]; !ok {
-				t.Fatalf("expected to found %q", tc.link)
-			}
-		})
+	for i, el := range expectedLinks {
+		if el != links[i] {
+			t.Errorf("expected link %q. got=%q", el, links[i])
+		}
 	}
 }
 
@@ -93,8 +89,7 @@ func BenchmarkFetchLinks(b *testing.B) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
 	defer server.Close()
 
-	client := &http.Client{}
 	for i := 0; i < b.N; i++ {
-		fetchLinks(server.URL, client)
+		fetchLinks(server.URL)
 	}
 }
