@@ -4,10 +4,10 @@ COPY go.mod .
 COPY go.sum .
 RUN apk add --no-cache git
 RUN go mod download
-COPY . .
+COPY main.go .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o kelsier
 
-FROM alpine:3.9
+FROM alpine:3.9.4
 LABEL maintainer="danielkvist@protonmail.com"
 RUN apk add --no-cache ca-certificates 
 COPY --from=build /app/kelsier /app/kelsier
