@@ -1,8 +1,12 @@
 # Kelsier
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/danielkvist/kelsier)](https://goreportcard.com/report/github.com/danielkvist/kelsier)
+[![Docker Pulls](https://img.shields.io/docker/pulls/danielkvist/kelsier.svg?maxAge=604800)](https://hub.docker.com/r/danielkvist/kelsier/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+
 > This project has been inspired by [this article](https://dev.to/healeycodes/build-a-python-bot-to-find-your-website-s-dead-links-563c).
 
-Kelsier is a simple terminal tool that allows you to find broken links on one or more Web pages.
+Kelsier is a simple CLI that allows you to find broken links on one or more Web pages.
 
 ## Example
 
