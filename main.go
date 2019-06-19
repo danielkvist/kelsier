@@ -101,7 +101,7 @@ func check(c *http.Client, in <-chan string) <-chan string {
 	go func() {
 		for l := range in {
 			func(link string) {
-				req, err := http.NewRequest(http.MethodGet, link, nil)
+				req, err := http.NewRequest(http.MethodHead, link, nil)
 				if err != nil {
 					out <- status(0, link)
 					return
