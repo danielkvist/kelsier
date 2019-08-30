@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/danielkvist/fitchner"
+	"github.com/danielkvist/fitchner/filter"
 )
 
 func main() {
@@ -59,18 +58,18 @@ func normalize(base, url string) string {
 
 func fetchLinks(c *http.Client, url string) ([]string, error) {
 	url = normalize("", url)
-	f, err := fitchner.NewFetcher(fitchner.WithClient(c), fitchner.WithSimpleGetRequest(url))
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("while creating a new Fetcher to extract the links from %q: %v", url, err)
+		return nil, fmt.Errorf("while creating a new HTTP GET request for %q: %v", url, err)
 	}
 
-	d, err := f.Do()
+	resp, err := c.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("while making a request to %q: %v", url, err)
+		return nil, fmt.Errorf("while making an HTTP GET request to %q: %v", url, err)
 	}
+	defer resp.Body.Close()
 
-	data := bytes.NewReader(d)
-	links, err := fitchner.Links(data)
+	links, err := filter.Links(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("while extracting the links of the response body of %q: %v", url, err)
 	}
